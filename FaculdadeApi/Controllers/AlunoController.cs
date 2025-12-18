@@ -24,9 +24,9 @@ public class AlunoController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
     {
-        var alunos = await _alunoService.GetAll();
+        var alunos = await _alunoService.GetAll(offSet, limit);
         return Ok(alunos ?? Enumerable.Empty<ReadAlunoDto>());
     }
 

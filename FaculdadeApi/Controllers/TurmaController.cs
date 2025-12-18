@@ -15,10 +15,18 @@ public class TurmaController : ControllerBase
         _turmaService = turmaService;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+    [HttpPost]
+    public async Task<IActionResult> CreateTurma([FromBody] CreateTurmaDto dto)
     {
-        var turmas = await _turmaService.GetAll();
+        var turma = await _turmaService.Create(dto);
+        if (turma is null) return BadRequest();
+        return CreatedAtAction(nameof(GetTurmaById), new { Id = dto.Id }, turma);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
+    {
+        var turmas = await _turmaService.GetAll(offSet, limit);
         return Ok(turmas ?? Enumerable.Empty<ReadTurmaDto>());
     }
 
@@ -28,14 +36,6 @@ public class TurmaController : ControllerBase
         var turma = await _turmaService.GetById(id);
         if (turma is null) return NotFound();
         return Ok(turma);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateTurma([FromBody] CreateTurmaDto dto)
-    {
-        var turma = await _turmaService.Create(dto);
-        if (turma is null) return BadRequest();
-        return CreatedAtAction(nameof(GetTurmaById), new { Id = dto.Id }, turma);
     }
 
     [HttpDelete("{id}")]

@@ -14,29 +14,6 @@ public class TurmaService
     {
         _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
     }
-    public async Task<IEnumerable<ReadTurmaDto>> GetAll()
-    {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
-
-        var sql = "SELECT id, id_curso AS idCurso, periodo, formato FROM tb_turma";
-
-        var turmas = await sqlConnection.QueryAsync<ReadTurmaDto>(sql);
-        return turmas;
-    }
-
-    public async Task<ReadTurmaDto?> GetById(string id)
-    {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
-
-        var sql = "SELECT id, id_curso AS idCurso, periodo, formato FROM tb_turma WHERE id = @Id";
-        var parametros = new { Id = id.ToUpper() };
-
-        var turma = await sqlConnection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
-        if (turma is null) return null;
-        return turma;
-    }
 
     public async Task<ReadTurmaDto?> Create(CreateTurmaDto dto)
     {
@@ -55,6 +32,39 @@ public class TurmaService
         };
 
         var turma = await sqlConnection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
+        return turma;
+    }
+    public async Task<IEnumerable<ReadTurmaDto>> GetAll(int offSet, int limit)
+    {
+        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await sqlConnection.OpenAsync();
+
+        var sql = @"SELECT id, id_curso AS idCurso, periodo, formato 
+                    FROM tb_turma
+                    ORDER BY id
+                    OFFSET @OffSet
+                    LIMIT @Limit";
+
+        var parametros = new
+        {
+            OffSet = offSet,
+            Limit = limit
+        };
+
+        var turmas = await sqlConnection.QueryAsync<ReadTurmaDto>(sql, parametros);
+        return turmas;
+    }
+
+    public async Task<ReadTurmaDto?> GetById(string id)
+    {
+        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await sqlConnection.OpenAsync();
+
+        var sql = "SELECT id, id_curso AS idCurso, periodo, formato FROM tb_turma WHERE id = @Id";
+        var parametros = new { Id = id.ToUpper() };
+
+        var turma = await sqlConnection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
+        if (turma is null) return null;
         return turma;
     }
 

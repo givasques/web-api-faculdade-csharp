@@ -15,31 +15,6 @@ public class CursoService
         _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
     }
 
-    public async Task<IEnumerable<ReadCursoDto>> GetAll()
-    {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
-
-        var sql = "SELECT id, nome, descricao, qnt_semestres AS QntSemestres FROM tb_curso";
-        return await sqlConnection.QueryAsync<ReadCursoDto>(sql);
-    }
-
-    public async Task<ReadCursoDto?> GetById(int id)
-    {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
-
-        var sql = @"SELECT id, nome, descricao, qnt_semestres AS QntSemestres 
-                    FROM tb_curso
-                    WHERE id = @Id";
-
-        var parametros = new { Id = id };
-
-        var curso = await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
-        if (curso is null) return null;
-        return curso;
-    }
-
     public async Task<ReadCursoDto?> Create(CreateCursoDto dto)
     {
         using var sqlConnection = new NpgsqlConnection(_connectionString);
@@ -55,6 +30,41 @@ public class CursoService
             Descricao = dto.Descricao,
             QntSemestres = dto.QntSemestres
         };
+
+        var curso = await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
+        if (curso is null) return null;
+        return curso;
+    }
+
+    public async Task<IEnumerable<ReadCursoDto>> GetAll(int offSet, int limit)
+    {
+        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await sqlConnection.OpenAsync();
+
+        var sql = @"SELECT id, nome, descricao, qnt_semestres AS QntSemestres 
+                    FROM tb_curso
+                    OFFSET @OffSet
+                    LIMIT @Limit";
+
+        var parametros = new
+        {
+            OffSet = offSet,
+            Limit = limit
+        };
+
+        return await sqlConnection.QueryAsync<ReadCursoDto>(sql, parametros);
+    }
+
+    public async Task<ReadCursoDto?> GetById(int id)
+    {
+        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await sqlConnection.OpenAsync();
+
+        var sql = @"SELECT id, nome, descricao, qnt_semestres AS QntSemestres 
+                    FROM tb_curso
+                    WHERE id = @Id";
+
+        var parametros = new { Id = id };
 
         var curso = await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
         if (curso is null) return null;

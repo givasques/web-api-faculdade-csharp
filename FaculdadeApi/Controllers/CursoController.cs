@@ -15,10 +15,18 @@ public class CursoController : ControllerBase
         _cursoService = cursoService;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+    [HttpPost]
+    public async Task<IActionResult> CreateCurso([FromBody] CreateCursoDto dto)
     {
-        var cursos = await _cursoService.GetAll();
+        var curso = await _cursoService.Create(dto);
+        if (curso is null) return BadRequest();
+        return CreatedAtAction(nameof(GetCursoById), new { Id = curso.Id }, curso);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
+    {
+        var cursos = await _cursoService.GetAll(offSet, limit);
         return Ok(cursos ?? Enumerable.Empty<ReadCursoDto>());
     }
 
@@ -28,14 +36,6 @@ public class CursoController : ControllerBase
         var curso = await _cursoService.GetById(id);
         if (curso is null) return NotFound();
         return Ok(curso);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateCurso([FromBody] CreateCursoDto dto)
-    {
-        var curso = await _cursoService.Create(dto);
-        if (curso is null) return BadRequest();
-        return CreatedAtAction(nameof(GetCursoById), new { Id = curso.Id }, curso);
     }
 
     [HttpDelete("{id}")]

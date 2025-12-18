@@ -38,15 +38,24 @@ public class AlunoService
         return alunoCriado;   
     }
 
-    public async Task<IEnumerable<ReadAlunoDto>> GetAll()
+    public async Task<IEnumerable<ReadAlunoDto>> GetAll(int offSet, int limit)
     {
         using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
-        var sql = "SELECT rm, email, cpf, nome, data_nasc AS dataNascimento, id_turma " +
-                    "AS idTurma FROM tb_aluno";
+        var sql = @"SELECT rm, email, cpf, nome, data_nasc AS dataNascimento, 
+                    id_turma AS idTurma 
+                    FROM tb_aluno
+                    OFFSET @OffSet
+                    LIMIT @Limit";
 
-        var alunos = await sqlConnection.QueryAsync<ReadAlunoDto>(sql);
+        var parametros = new
+        {
+            OffSet = offSet,
+            Limit = limit
+        };
+
+        var alunos = await sqlConnection.QueryAsync<ReadAlunoDto>(sql, parametros);
         return alunos;
     }
 
