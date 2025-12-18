@@ -1,4 +1,4 @@
-﻿using FaculdadeApi.Dtos;
+﻿using FaculdadeApi.Dtos.CursoDtos;
 using FaculdadeApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,8 +49,8 @@ public class CursoController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateCursoById(int id, [FromBody] UpdateCursoDto dto)
     {
-        var linhasAlteradas = await _cursoService.UpdateById(id, dto);
-        if (linhasAlteradas == 0) return NotFound();
-        return NoContent();
+        var curso = await _cursoService.UpdateById(id, dto);
+        if (curso is null) return NotFound();
+        return Ok(curso);
     }
 }

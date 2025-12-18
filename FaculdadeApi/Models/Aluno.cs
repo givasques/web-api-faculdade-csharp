@@ -16,7 +16,6 @@ public class Aluno
     }
 
     [Required]
-    [Key]
     public int Rm { get; private set; }
     [Required]
     [DataType(DataType.EmailAddress)]

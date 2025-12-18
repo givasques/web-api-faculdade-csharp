@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Dapper;
-using FaculdadeApi.Dtos;
+using FaculdadeApi.Dtos.CursoDtos;
 using FaculdadeApi.Models;
 using Npgsql;
 
@@ -9,12 +9,10 @@ namespace FaculdadeApi.Services;
 public class CursoService
 {
     private readonly string _connectionString;
-    private readonly IMapper _mapper;
 
-    public CursoService(IConfiguration configuration, IMapper mapper)
+    public CursoService(IConfiguration configuration)
     {
         _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
-        _mapper = mapper;
     }
 
     public async Task<IEnumerable<ReadCursoDto>> GetAll()
@@ -23,8 +21,7 @@ public class CursoService
         await sqlConnection.OpenAsync();
 
         var sql = "SELECT id, nome, descricao, qnt_semestres AS QntSemestres FROM tb_curso";
-        var cursos = await sqlConnection.QueryAsync<Curso>(sql);
-        return _mapper.Map<IEnumerable<ReadCursoDto>>(cursos);
+        return await sqlConnection.QueryAsync<ReadCursoDto>(sql);
     }
 
     public async Task<ReadCursoDto?> GetById(int id)
@@ -38,8 +35,9 @@ public class CursoService
 
         var parametros = new { Id = id };
 
-        var curso = await sqlConnection.QuerySingleOrDefaultAsync<Curso>(sql, parametros);
-        return _mapper.Map<ReadCursoDto>(curso);
+        var curso = await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
+        if (curso is null) return null;
+        return curso;
     }
 
     public async Task<ReadCursoDto?> Create(CreateCursoDto dto)
@@ -58,8 +56,9 @@ public class CursoService
             QntSemestres = dto.QntSemestres
         };
 
-        var curso = await sqlConnection.QuerySingleOrDefaultAsync<Curso>(sql, parametros);
-        return _mapper.Map<ReadCursoDto>(curso);
+        var curso = await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
+        if (curso is null) return null;
+        return curso;
     }
 
     public async Task<int> DeleteById(int id)
@@ -73,7 +72,7 @@ public class CursoService
         return await sqlConnection.ExecuteAsync(sql, parametros);
     }
 
-    public async Task<int> UpdateById(int id, UpdateCursoDto dto)
+    public async Task<ReadCursoDto?> UpdateById(int id, UpdateCursoDto dto)
     {
         using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
@@ -82,7 +81,8 @@ public class CursoService
                     SET nome = @Nome,
                         descricao = @Descricao,
                         qnt_semestres = @QntSemestres
-                    WHERE id = @Id";
+                    WHERE id = @Id
+                    RETURNING id, nome, descricao, qnt_semestres AS QntSemestres";
 
         var parametros = new
         {
@@ -92,6 +92,6 @@ public class CursoService
             Id = id
         };
 
-        return await sqlConnection.ExecuteAsync(sql,parametros);
+        return await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
     }
 }

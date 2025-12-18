@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using FaculdadeApi.Dtos;
+using FaculdadeApi.Dtos.AlunoDtos;
 using FaculdadeApi.Models;
 
 namespace FaculdadeApi.Profiles;

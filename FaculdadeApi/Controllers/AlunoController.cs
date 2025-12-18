@@ -1,4 +1,4 @@
-﻿using FaculdadeApi.Dtos;
+﻿using FaculdadeApi.Dtos.AlunoDtos;
 using FaculdadeApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,8 +49,8 @@ public class AlunoController : ControllerBase
     [HttpPut("{rm}")]
     public async Task<IActionResult> UpdateAlunoByRm (int rm, [FromBody] UpdateAlunoDto dto)
     {
-        var linhasAlteradas = await _alunoService.UpdateByRm(rm, dto);
-        if (linhasAlteradas == 0) return NotFound();
-        return NoContent();
+        var aluno = await _alunoService.UpdateByRm(rm, dto);
+        if (aluno is null) return NotFound();
+        return Ok(aluno);
     }
 }

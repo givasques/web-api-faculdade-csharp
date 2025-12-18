@@ -2,19 +2,17 @@
 using Npgsql;
 using Dapper;
 using AutoMapper;
-using FaculdadeApi.Dtos;
+using FaculdadeApi.Dtos.AlunoDtos;
 
 namespace FaculdadeApi.Services;
 
 public class AlunoService
 {
     private readonly string _connectionString;
-    private IMapper _mapper;
 
-    public AlunoService(IConfiguration configuration, IMapper mapper)
+    public AlunoService(IConfiguration configuration)
     {
         _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
-        _mapper = mapper;
     }
 
     public async Task<ReadAlunoDto?> Create(CreateAlunoDto dto)
@@ -24,7 +22,7 @@ public class AlunoService
 
         var sql = "INSERT INTO tb_aluno (email, cpf, nome, data_nasc, id_turma) " +
             $"VALUES (@Email,@Cpf,@Nome,@DataNascimento,@IdTurma)" +
-            $"RETURNING rm, email, cpf, nome, data_nasc, id_turma AS idTurma";
+            $"RETURNING rm, email, cpf, nome, data_nasc AS dataNascimento, id_turma AS idTurma";
 
         var parametros = new
         {
@@ -35,11 +33,9 @@ public class AlunoService
             IdTurma = dto.IdTurma
         };
 
-        var alunoCriado = await sqlConnection.QuerySingleOrDefaultAsync<Aluno>(sql, parametros);
-
+        var alunoCriado = await sqlConnection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
         if (alunoCriado is null) return null;
-
-        return _mapper.Map<ReadAlunoDto>(alunoCriado);   
+        return alunoCriado;   
     }
 
     public async Task<IEnumerable<ReadAlunoDto>> GetAll()
@@ -50,9 +46,8 @@ public class AlunoService
         var sql = "SELECT rm, email, cpf, nome, data_nasc AS dataNascimento, id_turma " +
                     "AS idTurma FROM tb_aluno";
 
-        var alunos = await sqlConnection.QueryAsync<Aluno>(sql);
-
-        return _mapper.Map<IEnumerable<ReadAlunoDto>>(alunos);
+        var alunos = await sqlConnection.QueryAsync<ReadAlunoDto>(sql);
+        return alunos;
     }
 
     public async Task<ReadAlunoDto?> GetByRm(int rm)
@@ -69,11 +64,9 @@ public class AlunoService
             Rm = rm
         };
 
-        var aluno = await sqlConnection.QuerySingleOrDefaultAsync<Aluno>(sql, parametros);
-
+        var aluno = await sqlConnection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
         if (aluno is null) return null;
-
-        return _mapper.Map<ReadAlunoDto>(aluno); 
+        return aluno; 
     }
 
     public async Task<int> DeleteByRm(int rm)
@@ -91,7 +84,7 @@ public class AlunoService
         return await sqlConnection.ExecuteAsync(sql, parametros);  
     }
 
-    public async Task<int> UpdateByRm (int rm, UpdateAlunoDto dto)
+    public async Task<ReadAlunoDto?> UpdateByRm (int rm, UpdateAlunoDto dto)
     {
         using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
@@ -102,7 +95,9 @@ public class AlunoService
                         nome = @Nome,
                         data_nasc = @DataNascimento,
                         id_turma = @IdTurma
-                    WHERE rm = @Rm";
+                    WHERE rm = @Rm
+                    RETURNING rm, email, cpf, nome, data_nasc AS DataNascimento,
+                                id_turma AS IdTurma";
 
         var parametros = new
         {
@@ -114,7 +109,7 @@ public class AlunoService
             Rm = rm
         };
 
-        return await sqlConnection.ExecuteAsync(sql, parametros);
+        return await sqlConnection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
     }
 
 }

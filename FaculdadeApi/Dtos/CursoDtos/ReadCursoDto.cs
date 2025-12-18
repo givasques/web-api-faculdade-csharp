@@ -1,4 +1,4 @@
-﻿namespace FaculdadeApi.Dtos;
+﻿namespace FaculdadeApi.Dtos.CursoDtos;
 
 public class ReadCursoDto
 {

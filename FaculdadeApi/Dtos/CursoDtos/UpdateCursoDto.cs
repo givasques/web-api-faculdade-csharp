@@ -1,11 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FaculdadeApi.Dtos;
+namespace FaculdadeApi.Dtos.CursoDtos;
 
-public class CreateCursoDto
+public class UpdateCursoDto
 {
     [Required]
-    [MaxLength(30)]
+    [MaxLength(70)]
     public string Nome { get; set; }
     [Required]
     public string Descricao { get; set; }
