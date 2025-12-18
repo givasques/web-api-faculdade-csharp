@@ -41,8 +41,8 @@ public class MateriaController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteMateriaById(int id)
     {
-        var linhasAlteradas = await _materiaService.DeleteById(id);
-        if (linhasAlteradas == 0) return NotFound();
+        var linhasDeletadas = await _materiaService.DeleteById(id);
+        if (linhasDeletadas == 0) return NotFound();
         return NoContent();
     }
 

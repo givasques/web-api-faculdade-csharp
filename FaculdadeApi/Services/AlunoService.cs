@@ -17,7 +17,7 @@ public class AlunoService
 
     public async Task<ReadAlunoDto?> Create(CreateAlunoDto dto)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = "INSERT INTO tb_aluno (email, cpf, nome, data_nasc, id_turma) " +
@@ -40,7 +40,7 @@ public class AlunoService
 
     public async Task<IEnumerable<ReadAlunoDto>> GetAll(int offSet, int limit)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = @"SELECT rm, email, cpf, nome, data_nasc AS dataNascimento, 
@@ -61,7 +61,7 @@ public class AlunoService
 
     public async Task<ReadAlunoDto?> GetByRm(int rm)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
 
@@ -80,7 +80,7 @@ public class AlunoService
 
     public async Task<int> DeleteByRm(int rm)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = "DELETE FROM tb_aluno WHERE rm = @Rm";
@@ -95,7 +95,7 @@ public class AlunoService
 
     public async Task<ReadAlunoDto?> UpdateByRm (int rm, UpdateAlunoDto dto)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = @"UPDATE tb_aluno

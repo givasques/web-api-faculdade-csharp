@@ -17,7 +17,7 @@ public class TurmaService
 
     public async Task<ReadTurmaDto?> Create(CreateTurmaDto dto)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = @"INSERT INTO tb_turma VALUES (@Id, @IdCurso, @Periodo, @Formato)
@@ -36,7 +36,7 @@ public class TurmaService
     }
     public async Task<IEnumerable<ReadTurmaDto>> GetAll(int offSet, int limit)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = @"SELECT id, id_curso AS idCurso, periodo, formato 
@@ -57,7 +57,7 @@ public class TurmaService
 
     public async Task<ReadTurmaDto?> GetById(string id)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = "SELECT id, id_curso AS idCurso, periodo, formato FROM tb_turma WHERE id = @Id";
@@ -70,7 +70,7 @@ public class TurmaService
 
     public async Task<int> DeleteById (string id)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = "DELETE FROM tb_turma WHERE id = @Id";
@@ -81,7 +81,7 @@ public class TurmaService
 
     public async Task<ReadTurmaDto?> UpdateById(string id, UpdateTurmaDto dto)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = @"UPDATE tb_turma

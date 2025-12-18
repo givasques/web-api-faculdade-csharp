@@ -15,7 +15,7 @@ public class MateriaService
 
     public async Task<ReadMateriaDto?> Create(CreateMateriaDto dto)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = @"INSERT INTO tb_materia (nome, descricao) VALUES (@Nome, @Descricao)
@@ -32,7 +32,7 @@ public class MateriaService
 
     public async Task<IEnumerable<ReadMateriaDto>> GetAll(int offSet, int limit)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = "SELECT * FROM tb_materia OFFSET @OffSet LIMIT @Limit";
@@ -47,7 +47,7 @@ public class MateriaService
 
     public async Task<ReadMateriaDto?> GetById(int id)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = "SELECT * FROM tb_materia WHERE id = @Id";
@@ -58,7 +58,7 @@ public class MateriaService
 
     public async Task<int> DeleteById(int id)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = "DELETE FROM tb_materia WHERE id = @Id";
@@ -69,7 +69,7 @@ public class MateriaService
 
     public async Task<ReadMateriaDto?> UpdateById(int id, UpdateMateriaDto dto)
     {
-        using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
         var sql = @"UPDATE tb_materia

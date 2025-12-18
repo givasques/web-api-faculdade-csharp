@@ -41,8 +41,8 @@ public class TurmaController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTurmaById(string id)
     {
-        var linhasAlteradas = await _turmaService.DeleteById(id);
-        if(linhasAlteradas == 0) return NotFound();
+        var linhasDeletadas = await _turmaService.DeleteById(id);
+        if(linhasDeletadas == 0) return NotFound();
         return NoContent();
     }
 

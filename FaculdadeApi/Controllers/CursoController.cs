@@ -39,10 +39,10 @@ public class CursoController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCursoById(int id) 
+    public async Task<IActionResult> DeleteCursoById(int id)
     {
-        var linhasAlteradas = await _cursoService.DeleteById(id);
-        if (linhasAlteradas == 0) return NotFound();
+        var linhasDeletadas = await _cursoService.DeleteById(id);
+        if (linhasDeletadas == 0) return NotFound();
         return NoContent();
     }
 
@@ -52,5 +52,30 @@ public class CursoController : ControllerBase
         var curso = await _cursoService.UpdateById(id, dto);
         if (curso is null) return NotFound();
         return Ok(curso);
+    }
+
+    [HttpPost("{id}/materias")]
+    public async Task<IActionResult> AddMateriaAGrade(int id, [FromBody] AddMateriaAGradeDto materiaDto)
+    {
+        var gradeCurso = await _cursoService.AddMateriaAGrade(id, materiaDto);
+        if (gradeCurso is null) return BadRequest();
+        return Ok(gradeCurso);
+
+    }
+
+    [HttpGet("{id}/materias")]
+    public async Task<IActionResult> GetGradePorId(int id)
+    {
+        var grade = await _cursoService.GetGradePorId(id);
+        if (grade is null) return NotFound();
+        return Ok(grade);
+    }
+
+    [HttpDelete("{idCurso}/materias/{idMateria}")]
+    public async Task<IActionResult> DeleteMateriaDaGrade(int idCurso, int idMateria)
+    {
+        var linhasDeletadas = await _cursoService.DeleteMateriaDaGrade(idCurso, idMateria);
+        if (linhasDeletadas == 0) return NotFound();
+        return NoContent();
     }
 }
