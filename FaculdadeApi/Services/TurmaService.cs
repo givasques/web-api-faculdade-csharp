@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Dapper;
+using FaculdadeApi.Dtos.AvaliacaoDtos;
 using FaculdadeApi.Dtos.MateriaDtos;
 using FaculdadeApi.Dtos.ProfessorDtos;
 using FaculdadeApi.Dtos.TurmaDtos;
@@ -139,5 +140,28 @@ public class TurmaService
             );
 
         return new ReadMateriasDaTurmaDto { Turma = turma, Materias = materias.Any() ? materias : [] };
+    }
+
+    public async Task<ReadAvaliacoesPorTurmaDto?> GetAvaliacoesById(string id)
+    {
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await sqlConnection.OpenAsync();
+
+        var idEncontrado = await sqlConnection
+            .QuerySingleOrDefaultAsync<string>(@"SELECT id FROM tb_turma WHERE id = @Id", new { Id = id });
+
+        if (idEncontrado is null) return null;
+
+        var sql = @"SELECT av.id, mm.id_turma as idTurma, m.nome AS nomeMateria,
+		                    av.data_aplicacao AS dataAplicacao, av.nota_max AS notaMaxima
+                    FROM tb_avaliacao av
+                    JOIN tb_materia_ministrada mm ON av.id_materia_ministrada = mm.id
+                    JOIN tb_materia m ON mm.id_materia = m.id
+                    WHERE mm.id_turma = @Id";
+
+        var avaliacoes = await sqlConnection
+            .QueryAsync<ReadAvaliacaoSimplificadaDto>(sql, new { Id = id });
+
+        return new ReadAvaliacoesPorTurmaDto { IdTurma = id, Avaliacoes = avaliacoes.Any() ? avaliacoes : [] };
     }
 }

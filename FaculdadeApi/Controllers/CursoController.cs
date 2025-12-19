@@ -27,7 +27,7 @@ public class CursoController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
     {
         var cursos = await _cursoService.GetAll(offSet, limit);
-        return Ok(cursos ?? Enumerable.Empty<ReadCursoDto>());
+        return Ok(cursos ?? []);
     }
 
     [HttpGet("{id}")]

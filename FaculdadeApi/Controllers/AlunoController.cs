@@ -27,7 +27,7 @@ public class AlunoController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
     {
         var alunos = await _alunoService.GetAll(offSet, limit);
-        return Ok(alunos ?? Enumerable.Empty<ReadAlunoDto>());
+        return Ok(alunos ?? []);
     }
 
     [HttpGet("{rm}")]
@@ -36,6 +36,14 @@ public class AlunoController : ControllerBase
         var aluno = await _alunoService.GetByRm(rm);
         if (aluno is null) return NotFound();
         return Ok(aluno);
+    }
+
+    [HttpGet("{rm}/provas")]
+    public async Task<IActionResult> GetProvasByRm(int rm)
+    {
+        var provas = await _alunoService.GetProvasByRm(rm);
+        if (provas is null) return NotFound();
+        return Ok(provas);
     }
 
     [HttpDelete("{rm}")]

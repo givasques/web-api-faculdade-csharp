@@ -1,8 +1,9 @@
-﻿using FaculdadeApi.Models;
-using Npgsql;
+﻿using AutoMapper;
 using Dapper;
-using AutoMapper;
 using FaculdadeApi.Dtos.AlunoDtos;
+using FaculdadeApi.Dtos.AvaliacaoDtos;
+using FaculdadeApi.Models;
+using Npgsql;
 
 namespace FaculdadeApi.Services;
 
@@ -121,4 +122,32 @@ public class AlunoService
         return await sqlConnection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
     }
 
+    public async Task<ReadProvasRealizadasDto?> GetProvasByRm(int rm)
+    {
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await sqlConnection.OpenAsync();
+
+        var rmEncontrado = await sqlConnection
+            .QuerySingleOrDefaultAsync<int>(@"SELECT rm FROM tb_aluno WHERE rm = @Rm", new { Rm = rm });
+
+        if (rmEncontrado == 0) return null;
+
+
+        var sql = @"SELECT av.id, mm.id_turma AS idTurma, m.nome AS nomeMateria, 
+		                    av.data_aplicacao AS dataAplicacao, av.nota_max AS notaMaxima
+                    FROM tb_realizacao_prova rp
+                    JOIN tb_avaliacao av ON av.id = rp.id_avaliacao
+                    JOIN tb_materia_ministrada mm ON av.id_materia_ministrada = mm.id
+                    JOIN tb_materia m ON mm.id_materia = m.id
+                    WHERE rp.rm_aluno = @Rm";
+
+        var provas = await sqlConnection
+            .QueryAsync<ReadAvaliacaoSimplificadaDto>
+            (
+                sql,
+                new { Rm = rm }
+            );
+
+        return new ReadProvasRealizadasDto { RmAluno = rm, ProvasRealizadas = provas.Any() ? provas : [] };
+    }
 }

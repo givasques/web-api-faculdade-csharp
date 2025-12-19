@@ -27,7 +27,7 @@ public class TurmaController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
     {
         var turmas = await _turmaService.GetAll(offSet, limit);
-        return Ok(turmas ?? Enumerable.Empty<ReadTurmaDto>());
+        return Ok(turmas ?? []);
     }
 
     [HttpGet("{id}")]
@@ -36,6 +36,22 @@ public class TurmaController : ControllerBase
         var turma = await _turmaService.GetById(id);
         if (turma is null) return NotFound();
         return Ok(turma);
+    }
+
+    [HttpGet("{id}/materias")]
+    public async Task<IActionResult> GetMateriasById(string id)
+    {
+        var materias = await _turmaService.GetMateriasById(id);
+        if (materias is null) return NotFound();
+        return Ok(materias);
+    }
+
+    [HttpGet("{id}/avaliacoes")]
+    public async Task<IActionResult> GetAvaliacoesById(string id)
+    {
+        var avaliacoes = await _turmaService.GetAvaliacoesById(id);
+        if (avaliacoes is null) return NotFound();
+        return Ok(avaliacoes);
     }
 
     [HttpDelete("{id}")]
@@ -52,13 +68,5 @@ public class TurmaController : ControllerBase
         var turma = await _turmaService.UpdateById(id, dto);
         if (turma is null) return NotFound();
         return Ok(turma);
-    }
-
-    [HttpGet("{id}/materias")]
-    public async Task<IActionResult> GetMateriasById(string id)
-    {
-        var materias = await _turmaService.GetMateriasById(id);
-        if (materias is null) return NotFound();
-        return Ok(materias);
     }
 }

@@ -27,7 +27,7 @@ public class ProfessorController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
     {
         var professores = await _professorService.GetAll(offSet, limit);
-        return Ok(professores ?? Enumerable.Empty<ReadProfessorDto>());
+        return Ok(professores ?? []);
     }
 
     [HttpGet("{id}")]

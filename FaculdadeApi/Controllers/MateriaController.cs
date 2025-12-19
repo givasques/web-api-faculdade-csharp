@@ -27,7 +27,7 @@ public class MateriaController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] int offSet = 0, [FromQuery] int limit = 10)
     {
         var materias = await _materiaService.GetAll(offSet, limit);
-        return Ok(materias ?? Enumerable.Empty<ReadMateriaDto>());
+        return Ok(materias ?? []);
     }
 
     [HttpGet("{id}")]
