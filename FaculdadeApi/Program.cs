@@ -8,6 +8,7 @@ builder.Services.AddScoped<AlunoService>();
 builder.Services.AddScoped<CursoService>();
 builder.Services.AddScoped<TurmaService>();
 builder.Services.AddScoped<MateriaService>();
+builder.Services.AddScoped<ProfessorService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

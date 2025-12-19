@@ -53,4 +53,12 @@ public class TurmaController : ControllerBase
         if (turma is null) return NotFound();
         return Ok(turma);
     }
+
+    [HttpGet("{id}/materias")]
+    public async Task<IActionResult> GetMateriasById(string id)
+    {
+        var materias = await _turmaService.GetMateriasById(id);
+        if (materias is null) return NotFound();
+        return Ok(materias);
+    }
 }

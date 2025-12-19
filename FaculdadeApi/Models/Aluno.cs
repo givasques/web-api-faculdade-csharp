@@ -21,10 +21,10 @@ public class Aluno
     [DataType(DataType.EmailAddress)]
     public string Email { get; private set; }
     [Required]
-    [StringLength(11)]
+    [StringLength(11, MinimumLength = 11)]
     public string Cpf { get; private set; }
     [Required]
-    [MaxLength(50)]
+    [MaxLength(70)]
     public string Nome { get; private set; }
     [Required]
     public DateOnly DataNascimento { get; private set; }

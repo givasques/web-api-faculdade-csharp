@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using Dapper;
+using FaculdadeApi.Dtos.MateriaDtos;
+using FaculdadeApi.Dtos.ProfessorDtos;
 using FaculdadeApi.Dtos.TurmaDtos;
 using FaculdadeApi.Models;
 using Npgsql;
@@ -101,5 +103,41 @@ public class TurmaService
 
         var turma = await sqlConnection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
         return turma;
+    }
+
+    public async Task<ReadMateriasDaTurmaDto?> GetMateriasById(string id)
+    {
+        await using var sqlConnection = new NpgsqlConnection(_connectionString);
+        await sqlConnection.OpenAsync();
+
+        var turma = await sqlConnection
+            .QuerySingleOrDefaultAsync<ReadTurmaDto>
+            (@"SELECT id, id_curso AS idCurso, periodo, formato
+               FROM tb_turma
+               WHERE id = @Id",
+            new { Id = id });
+
+        if (turma is null) return null;
+
+        var sql = @"SELECT p.id, p.nome, p.cpf, p.telefone, p.email,
+		                    m.descricao, m.id, m.nome
+                    FROM tb_materia_ministrada mm 
+                    JOIN tb_professor p ON mm.id_professor = p.id
+                    JOIN tb_materia m ON mm.id_materia = m.id
+                    WHERE mm.id_turma = @Id";
+
+        var materias = await sqlConnection
+            .QueryAsync<ReadProfessorDto, ReadMateriaDto, ReadProfessorMateriaDto>
+            (
+                sql,
+                (professor, materia) =>
+                {
+                    return new ReadProfessorMateriaDto { Professor = professor, Materia = materia };
+                },
+                new { Id = id },
+                splitOn: "descricao"
+            );
+
+        return new ReadMateriasDaTurmaDto { Turma = turma, Materias = materias.Any() ? materias : [] };
     }
 }

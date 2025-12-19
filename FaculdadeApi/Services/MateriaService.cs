@@ -35,7 +35,11 @@ public class MateriaService
         await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
-        var sql = "SELECT * FROM tb_materia OFFSET @OffSet LIMIT @Limit";
+        var sql = @"SELECT id, nome, descricao 
+                    FROM tb_materia 
+                    OFFSET @OffSet 
+                    LIMIT @Limit";
+
         var parametros = new
         {
             OffSet = offSet,
@@ -50,7 +54,10 @@ public class MateriaService
         await using var sqlConnection = new NpgsqlConnection(_connectionString);
         await sqlConnection.OpenAsync();
 
-        var sql = "SELECT * FROM tb_materia WHERE id = @Id";
+        var sql = @"SELECT id, nome, descricao 
+                    FROM tb_materia 
+                    WHERE id = @Id";
+
         var parametros = new { Id = id };
 
         return await sqlConnection.QuerySingleOrDefaultAsync<ReadMateriaDto>(sql, parametros);
