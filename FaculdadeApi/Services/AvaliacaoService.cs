@@ -2,25 +2,31 @@
 using FaculdadeApi.Dtos.AvaliacaoDtos;
 using FaculdadeApi.Dtos.MateriaDtos;
 using FaculdadeApi.Dtos.TurmaDtos;
-using Npgsql;
+using System.Data;
+using System.Data.Common;
 
 namespace FaculdadeApi.Services;
 
 public class AvaliacaoService
 {
-    private readonly string _connectionString;
-    public AvaliacaoService(IConfiguration configuration)
+    private readonly DbConnection _connection;
+    public AvaliacaoService(DbConnection connection)
     {
-        _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
+        _connection = connection;
+    }
+
+    private async Task OpenConnectionAsync()
+    {
+        if (_connection.State == ConnectionState.Closed)
+            await _connection.OpenAsync();
     }
 
     public async Task<ReadAvaliacaoDto?> Create(CreateAvaliacaoDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var idMateriaMinistrada = await sqlConnection
-            .QuerySingleOrDefaultAsync<int>
+        var idMateriaMinistrada = await _connection
+            .ExecuteScalarAsync<int>
             (@"SELECT id
             FROM tb_materia_ministrada
             WHERE id_turma = @IdTurma AND id_materia = @IdMateria",
@@ -30,7 +36,7 @@ public class AvaliacaoService
                 IdMateria = dto.IdMateria
             });
 
-        if (idMateriaMinistrada == 0) throw new ApplicationException("Essa matéria não está sendo ministrada na turma informada");
+        if (idMateriaMinistrada == 0) throw new InvalidOperationException("Essa matéria não está sendo ministrada na turma informada");
 
         var sql = @"INSERT INTO tb_avaliacao (id_materia_ministrada, data_aplicacao, nota_max)
                     VALUES (@IdMateriaMinistrada, @DataAplicacao, @NotaMaxima)
@@ -43,18 +49,17 @@ public class AvaliacaoService
             NotaMaxima = dto.NotaMaxima
         };
 
-        var idAvaliacaoCriada = await sqlConnection
-            .QuerySingleOrDefaultAsync<int>(sql, parametros);
+        var idAvaliacaoCriada = await _connection
+            .ExecuteScalarAsync<int>(sql, parametros);
 
         if (idAvaliacaoCriada == 0) return null;
 
         return await GetById(idAvaliacaoCriada);
     }
 
-    public async Task<IEnumerable<ReadAvaliacaoDto>?> GetAll()
+    public async Task<IEnumerable<ReadAvaliacaoDto>> GetAll()
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"SELECT a.id, a.data_aplicacao AS dataAplicacao, a.nota_max AS notaMaxima,
 		                    t.id_curso AS idCurso, t.id, t.periodo, t.formato,
@@ -64,7 +69,7 @@ public class AvaliacaoService
                     JOIN tb_turma t ON mm.id_turma = t.id
                     JOIN tb_materia m ON mm.id_materia = m.id";
 
-        return await sqlConnection
+        return await _connection
             .QueryAsync<ReadAvaliacaoDto, ReadTurmaDto, ReadMateriaDto, ReadAvaliacaoDto>
             (
                 sql,
@@ -80,8 +85,7 @@ public class AvaliacaoService
 
     public async Task<ReadAvaliacaoDto?> GetById(int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"SELECT a.id, a.data_aplicacao AS dataAplicacao, a.nota_max AS notaMaxima,
 		                    t.id_curso AS idCurso, t.id, t.periodo, t.formato,
@@ -92,7 +96,7 @@ public class AvaliacaoService
                     JOIN tb_materia m ON mm.id_materia = m.id
                     WHERE a.id = @Id";
 
-        var avaliacoes = await sqlConnection
+        var avaliacoes = await _connection
             .QueryAsync<ReadAvaliacaoDto, ReadTurmaDto, ReadMateriaDto, ReadAvaliacaoDto>
             (
                 sql,
@@ -111,26 +115,25 @@ public class AvaliacaoService
 
     public async Task<int> DeleteById(int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        return await sqlConnection
+        return await _connection
             .ExecuteAsync(@"DELETE FROM tb_avaliacao WHERE id = @Id", new { Id = id });
     }
 
     public async Task<ReadAvaliacaoDto?> UpdateById(int id, UpdateAvaliacaoDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-
-        var linhasAlteradas = await sqlConnection
+        var linhasAlteradas = await _connection
             .ExecuteAsync
             (@"UPDATE tb_avaliacao
                 SET data_aplicacao = @DataAplicacao,
-                    nota_max = @NotaMaxima", 
+                    nota_max = @NotaMaxima
+                WHERE id = @Id", 
             new
             {
+                Id = id,
                 DataAplicacao = dto.DataAplicacao.ToDateTime(TimeOnly.MinValue),
                 NotaMaxima = dto.NotaMaxima
             });

@@ -1,6 +1,16 @@
 using FaculdadeApi.Services;
+using Npgsql;
+using System.Data;
+using System.Data.Common;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<DbConnection>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("FaculdadeApi");
+    return new NpgsqlConnection(connectionString);
+});
 
 // Add services to the container.
 

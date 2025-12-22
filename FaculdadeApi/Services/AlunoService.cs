@@ -1,25 +1,29 @@
-﻿using AutoMapper;
-using Dapper;
+﻿using Dapper;
 using FaculdadeApi.Dtos.AlunoDtos;
 using FaculdadeApi.Dtos.AvaliacaoDtos;
-using FaculdadeApi.Models;
-using Npgsql;
+using System.Data;
+using System.Data.Common;
 
 namespace FaculdadeApi.Services;
 
 public class AlunoService
 {
-    private readonly string _connectionString;
+    private readonly DbConnection _connection;
 
-    public AlunoService(IConfiguration configuration)
+    public AlunoService(DbConnection connection)
     {
-        _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
+       _connection = connection;
+    }
+
+    private async Task OpenConnectionAsync()
+    {
+        if (_connection.State == ConnectionState.Closed)
+            await _connection.OpenAsync();
     }
 
     public async Task<ReadAlunoDto?> Create(CreateAlunoDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = "INSERT INTO tb_aluno (email, cpf, nome, data_nasc, id_turma) " +
             $"VALUES (@Email,@Cpf,@Nome,@DataNascimento,@IdTurma)" +
@@ -34,19 +38,19 @@ public class AlunoService
             IdTurma = dto.IdTurma
         };
 
-        var alunoCriado = await sqlConnection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
+        var alunoCriado = await _connection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
         if (alunoCriado is null) return null;
         return alunoCriado;   
     }
 
     public async Task<IEnumerable<ReadAlunoDto>> GetAll(int offSet, int limit)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"SELECT rm, email, cpf, nome, data_nasc AS dataNascimento, 
                     id_turma AS idTurma 
                     FROM tb_aluno
+                    ORDER BY rm
                     OFFSET @OffSet
                     LIMIT @Limit";
 
@@ -56,14 +60,13 @@ public class AlunoService
             Limit = limit
         };
 
-        var alunos = await sqlConnection.QueryAsync<ReadAlunoDto>(sql, parametros);
+        var alunos = await _connection.QueryAsync<ReadAlunoDto>(sql, parametros);
         return alunos;
     }
 
     public async Task<ReadAlunoDto?> GetByRm(int rm)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
 
         var sql = "SELECT rm, email, cpf, nome, data_nasc AS dataNascimento, id_turma " +
@@ -74,15 +77,14 @@ public class AlunoService
             Rm = rm
         };
 
-        var aluno = await sqlConnection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
+        var aluno = await _connection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
         if (aluno is null) return null;
         return aluno; 
     }
 
     public async Task<int> DeleteByRm(int rm)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = "DELETE FROM tb_aluno WHERE rm = @Rm";
 
@@ -91,13 +93,12 @@ public class AlunoService
             Rm = rm
         };
 
-        return await sqlConnection.ExecuteAsync(sql, parametros);  
+        return await _connection.ExecuteAsync(sql, parametros);  
     }
 
     public async Task<ReadAlunoDto?> UpdateByRm (int rm, UpdateAlunoDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"UPDATE tb_aluno
                     SET email = @Email,
@@ -119,33 +120,38 @@ public class AlunoService
             Rm = rm
         };
 
-        return await sqlConnection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
+        return await _connection.QuerySingleOrDefaultAsync<ReadAlunoDto>(sql, parametros);
     }
 
     public async Task<ReadProvasRealizadasDto?> GetProvasByRm(int rm)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var rmEncontrado = await sqlConnection
-            .QuerySingleOrDefaultAsync<int>(@"SELECT rm FROM tb_aluno WHERE rm = @Rm", new { Rm = rm });
+        var existe = await _connection
+            .ExecuteScalarAsync<bool>(@"SELECT EXISTS (SELECT 1 FROM tb_aluno WHERE rm = @Rm)", new { Rm = rm });
 
-        if (rmEncontrado == 0) return null;
+        if (!existe) return null;
 
 
         var sql = @"SELECT av.id, mm.id_turma AS idTurma, m.nome AS nomeMateria, 
-		                    av.data_aplicacao AS dataAplicacao, av.nota_max AS notaMaxima
+		                    av.data_aplicacao AS dataAplicacao, av.nota_max AS notaMaxima, rp.nota
                     FROM tb_realizacao_prova rp
                     JOIN tb_avaliacao av ON av.id = rp.id_avaliacao
                     JOIN tb_materia_ministrada mm ON av.id_materia_ministrada = mm.id
                     JOIN tb_materia m ON mm.id_materia = m.id
                     WHERE rp.rm_aluno = @Rm";
 
-        var provas = await sqlConnection
-            .QueryAsync<ReadAvaliacaoSimplificadaDto>
+        var provas = await _connection
+            .QueryAsync<ReadAvaliacaoSimplificadaDto, ReadProvaAvaliadaDto, ReadProvaAvaliadaDto>
             (
                 sql,
-                new { Rm = rm }
+                (avaliacao, provaAvaliada) =>
+                {
+                    provaAvaliada.Avaliacao = avaliacao;
+                    return provaAvaliada;
+                },
+                new { Rm = rm },
+                splitOn: "nota"
             );
 
         return new ReadProvasRealizadasDto { RmAluno = rm, ProvasRealizadas = provas.Any() ? provas : [] };

@@ -1,29 +1,33 @@
-﻿using AutoMapper;
-using Dapper;
+﻿using Dapper;
 using FaculdadeApi.Dtos.CursoDtos;
 using FaculdadeApi.Dtos.MateriaDtos;
-using FaculdadeApi.Models;
-using Npgsql;
+using System.Data.Common;
+using System.Data;
 
 namespace FaculdadeApi.Services;
 
 public class CursoService
 {
-    private readonly string _connectionString;
+    private readonly DbConnection _connection;
 
-    public CursoService(IConfiguration configuration)
+    public CursoService(DbConnection connection)
     {
-        _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
+        _connection = connection;
+    }
+
+    private async Task OpenConnectionAsync()
+    {
+        if (_connection.State == ConnectionState.Closed)
+            await _connection.OpenAsync();
     }
 
     public async Task<ReadCursoDto?> Create(CreateCursoDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"INSERT INTO tb_curso (nome, descricao, qnt_semestres)
                     VALUES (@Nome,@Descricao,@QntSemestres)
-                    RETURNING id, nome, descricao, qnt_semestres AS QntSemestres";
+                    RETURNING id, nome, descricao, qnt_semestres AS qntSemestres";
 
         var parametros = new
         {
@@ -32,17 +36,14 @@ public class CursoService
             QntSemestres = dto.QntSemestres
         };
 
-        var curso = await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
-        if (curso is null) return null;
-        return curso;
+        return await _connection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
     }
 
     public async Task<IEnumerable<ReadCursoDto>> GetAll(int offSet, int limit)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var sql = @"SELECT id, nome, descricao, qnt_semestres AS QntSemestres 
+        var sql = @"SELECT id, nome, descricao, qnt_semestres AS qntSemestres 
                     FROM tb_curso
                     OFFSET @OffSet
                     LIMIT @Limit";
@@ -53,47 +54,44 @@ public class CursoService
             Limit = limit
         };
 
-        return await sqlConnection.QueryAsync<ReadCursoDto>(sql, parametros);
+        return await _connection.QueryAsync<ReadCursoDto>(sql, parametros);
     }
 
     public async Task<ReadCursoDto?> GetById(int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var sql = @"SELECT id, nome, descricao, qnt_semestres AS QntSemestres 
+        var sql = @"SELECT id, nome, descricao, qnt_semestres AS qntSemestres 
                     FROM tb_curso
                     WHERE id = @Id";
 
         var parametros = new { Id = id };
 
-        var curso = await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
+        var curso = await _connection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
         if (curso is null) return null;
         return curso;
     }
 
     public async Task<int> DeleteById(int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = "DELETE FROM tb_curso WHERE id = @Id";
         var parametros = new { Id = id };
 
-        return await sqlConnection.ExecuteAsync(sql, parametros);
+        return await _connection.ExecuteAsync(sql, parametros);
     }
 
     public async Task<ReadCursoDto?> UpdateById(int id, UpdateCursoDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"UPDATE tb_curso
                     SET nome = @Nome,
                         descricao = @Descricao,
                         qnt_semestres = @QntSemestres
                     WHERE id = @Id
-                    RETURNING id, nome, descricao, qnt_semestres AS QntSemestres";
+                    RETURNING id, nome, descricao, qnt_semestres AS qntSemestres";
 
         var parametros = new
         {
@@ -103,15 +101,14 @@ public class CursoService
             Id = id
         };
 
-        return await sqlConnection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
+        return await _connection.QuerySingleOrDefaultAsync<ReadCursoDto>(sql, parametros);
     }
 
     public async Task<ReadGradeCursoDto?> AddMateriaAGrade(int idCurso, AddMateriaAGradeDto materiaDto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        await using var transaction = await sqlConnection.BeginTransactionAsync();
+        await using var transaction = await _connection.BeginTransactionAsync();
 
         try
         {
@@ -125,13 +122,13 @@ public class CursoService
                 CargaHoraria = materiaDto.CargaHoraria
             };
 
-            await sqlConnection.ExecuteAsync(sql, parametros, transaction);
+            await _connection.ExecuteAsync(sql, parametros, transaction);
 
             sql = @"SELECT c.id, c.nome, c.descricao, c.qnt_semestres AS qntSemestres
                 FROM tb_curso c
                 WHERE c.id = @IdCurso";
 
-            var curso = await sqlConnection
+            var curso = await _connection
             .QuerySingleOrDefaultAsync<ReadCursoDto>(sql, new { IdCurso = idCurso }, transaction);
 
             sql = @"SELECT m.id, m.nome, m.descricao, gc.carga_horaria AS cargaHoraria
@@ -139,7 +136,7 @@ public class CursoService
                 JOIN tb_grade_curso gc ON gc.id_materia = m.id
                 WHERE m.id = @IdMateria AND gc.id_curso = @IdCurso";
 
-            var materias = await sqlConnection
+            var materias = await _connection
             .QueryAsync<ReadMateriaDto, ReadMateriaGradeDto, ReadMateriaGradeDto>
             (sql, (materia, grade) =>
             {
@@ -165,15 +162,14 @@ public class CursoService
         }
     }
 
-    public async Task<ReadGradeCursoDto> GetGradePorId(int id)
+    public async Task<ReadGradeCursoDto?> GetGradePorId(int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var sql = @"SELECT id, nome, descricao, qnt_semestres AS QntSemestres
+        var sql = @"SELECT id, nome, descricao, qnt_semestres AS qntSemestres
                     FROM tb_curso WHERE id = @Id";
 
-        var curso = await sqlConnection
+        var curso = await _connection
             .QuerySingleOrDefaultAsync<ReadCursoDto>(sql, new { Id = id });
 
         if (curso is null) return null;
@@ -184,7 +180,7 @@ public class CursoService
                     JOIN tb_materia m ON gc.id_materia = m.id
                     WHERE c.id = @Id";
 
-        var materias = await sqlConnection
+        var materias = await _connection
             .QueryAsync<ReadMateriaDto, ReadMateriaGradeDto, ReadMateriaGradeDto>(sql, (materia, grade) =>
             {
                 grade.Materia = materia;
@@ -204,13 +200,12 @@ public class CursoService
 
     public async Task<int> DeleteMateriaDaGrade(int idCurso, int idMateria)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"DELETE FROM tb_grade_curso
                     WHERE id_curso = @IdCurso AND id_materia = @IdMateria";
 
-        return await sqlConnection
+        return await _connection
             .ExecuteAsync(sql, new { IdCurso = idCurso, IdMateria = idMateria });
     }
 }

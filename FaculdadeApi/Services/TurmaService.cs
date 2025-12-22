@@ -1,29 +1,33 @@
-﻿using AutoMapper;
-using Dapper;
+﻿using Dapper;
 using FaculdadeApi.Dtos.AvaliacaoDtos;
 using FaculdadeApi.Dtos.MateriaDtos;
 using FaculdadeApi.Dtos.ProfessorDtos;
 using FaculdadeApi.Dtos.TurmaDtos;
-using FaculdadeApi.Models;
-using Npgsql;
-using System.Threading.Tasks;
+using System.Data.Common;
+using System.Data;
 
 namespace FaculdadeApi.Services;
 
 public class TurmaService
 {
-    private readonly string _connectionString;
-    public TurmaService(IConfiguration configuration)
+    private readonly DbConnection _connection;
+    public TurmaService(DbConnection connection)
     {
-        _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
+        _connection = connection;
     }
 
-    public async Task<ReadTurmaDto?> Create(CreateTurmaDto dto)
+    private async Task OpenConnectionAsync()
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        if (_connection.State == ConnectionState.Closed)
+            await _connection.OpenAsync();
+    }
 
-        var sql = @"INSERT INTO tb_turma VALUES (@Id, @IdCurso, @Periodo, @Formato)
+    public async Task<ReadTurmaDto> Create(CreateTurmaDto dto)
+    {
+        await OpenConnectionAsync();
+
+        var sql = @"INSERT INTO tb_turma (id, id_curso, periodo, formato)
+                    VALUES (@Id, @IdCurso, @Periodo, @Formato)
                     RETURNING id, id_curso AS idCurso, periodo, formato";
 
         var parametros = new
@@ -34,13 +38,11 @@ public class TurmaService
             Formato = dto.Formato
         };
 
-        var turma = await sqlConnection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
-        return turma;
+        return await _connection.QuerySingleAsync<ReadTurmaDto>(sql, parametros); ;
     }
     public async Task<IEnumerable<ReadTurmaDto>> GetAll(int offSet, int limit)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"SELECT id, id_curso AS idCurso, periodo, formato 
                     FROM tb_turma
@@ -54,38 +56,30 @@ public class TurmaService
             Limit = limit
         };
 
-        var turmas = await sqlConnection.QueryAsync<ReadTurmaDto>(sql, parametros);
-        return turmas;
+        return await _connection.QueryAsync<ReadTurmaDto>(sql, parametros); 
     }
 
     public async Task<ReadTurmaDto?> GetById(string id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = "SELECT id, id_curso AS idCurso, periodo, formato FROM tb_turma WHERE id = @Id";
         var parametros = new { Id = id.ToUpper() };
 
-        var turma = await sqlConnection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
-        if (turma is null) return null;
-        return turma;
+        return await _connection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
     }
 
     public async Task<int> DeleteById (string id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var sql = "DELETE FROM tb_turma WHERE id = @Id";
-        var parametros = new { Id = id };
-
-        return await sqlConnection.ExecuteAsync(sql, parametros);
+        return await _connection
+            .ExecuteAsync("DELETE FROM tb_turma WHERE id = @Id", new { Id = id });
     }
 
     public async Task<ReadTurmaDto?> UpdateById(string id, UpdateTurmaDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"UPDATE tb_turma
                     SET id_curso = @IdCurso,
@@ -102,16 +96,14 @@ public class TurmaService
             Id = id
         };
 
-        var turma = await sqlConnection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
-        return turma;
+        return await _connection.QuerySingleOrDefaultAsync<ReadTurmaDto>(sql, parametros);
     }
 
     public async Task<ReadMateriasDaTurmaDto?> GetMateriasById(string id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var turma = await sqlConnection
+        var turma = await _connection
             .QuerySingleOrDefaultAsync<ReadTurmaDto>
             (@"SELECT id, id_curso AS idCurso, periodo, formato
                FROM tb_turma
@@ -127,7 +119,7 @@ public class TurmaService
                     JOIN tb_materia m ON mm.id_materia = m.id
                     WHERE mm.id_turma = @Id";
 
-        var materias = await sqlConnection
+        var materias = await _connection
             .QueryAsync<ReadProfessorDto, ReadMateriaDto, ReadProfessorMateriaDto>
             (
                 sql,
@@ -144,13 +136,12 @@ public class TurmaService
 
     public async Task<ReadAvaliacoesPorTurmaDto?> GetAvaliacoesById(string id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var idEncontrado = await sqlConnection
-            .QuerySingleOrDefaultAsync<string>(@"SELECT id FROM tb_turma WHERE id = @Id", new { Id = id });
+        var existe = await _connection
+            .ExecuteScalarAsync<bool>(@"SELECT EXISTS (SELECT id FROM tb_turma WHERE id = @Id)", new { Id = id });
 
-        if (idEncontrado is null) return null;
+        if (!existe) return null;
 
         var sql = @"SELECT av.id, mm.id_turma as idTurma, m.nome AS nomeMateria,
 		                    av.data_aplicacao AS dataAplicacao, av.nota_max AS notaMaxima
@@ -159,7 +150,7 @@ public class TurmaService
                     JOIN tb_materia m ON mm.id_materia = m.id
                     WHERE mm.id_turma = @Id";
 
-        var avaliacoes = await sqlConnection
+        var avaliacoes = await _connection
             .QueryAsync<ReadAvaliacaoSimplificadaDto>(sql, new { Id = id });
 
         return new ReadAvaliacoesPorTurmaDto { IdTurma = id, Avaliacoes = avaliacoes.Any() ? avaliacoes : [] };

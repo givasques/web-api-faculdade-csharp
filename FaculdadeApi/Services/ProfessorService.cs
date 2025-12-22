@@ -1,26 +1,30 @@
 ﻿using Dapper;
-using FaculdadeApi.Dtos.CursoDtos;
 using FaculdadeApi.Dtos.MateriaDtos;
 using FaculdadeApi.Dtos.ProfessorDtos;
 using FaculdadeApi.Dtos.TurmaDtos;
-using Npgsql;
-using System.Threading.Tasks;
+using System.Data.Common;
+using System.Data;
 
 namespace FaculdadeApi.Services;
 
 public class ProfessorService
 {
-    private readonly string _connectionString;
+    private readonly DbConnection _connection;
 
-    public ProfessorService(IConfiguration configuration)
+    public ProfessorService(DbConnection connection)
     {
-        _connectionString = configuration["ConnectionStrings:FaculdadeApi"]!;
+        _connection = connection;
     }
 
-    public async Task<ReadProfessorDto?> Create(CreateProfessorDto dto)
+    private async Task OpenConnectionAsync()
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        if (_connection.State == ConnectionState.Closed)
+            await _connection.OpenAsync();
+    }
+
+    public async Task<ReadProfessorDto> Create(CreateProfessorDto dto)
+    {
+        await OpenConnectionAsync();
 
         var sql = @"INSERT INTO tb_professor (nome, cpf, telefone, email)
                     VALUES (@Nome, @Cpf, @Telefone, @Email)
@@ -34,53 +38,48 @@ public class ProfessorService
             Email = dto.Email
         };
 
-        var professor = await sqlConnection.QuerySingleOrDefaultAsync<ReadProfessorDto>(sql, parametros);
-
-        return professor;
+        return await _connection.QuerySingleAsync<ReadProfessorDto>(sql, parametros);
     }
 
-    public async Task<IEnumerable<ReadProfessorDto>?> GetAll(int offSet, int limit)
+    public async Task<IEnumerable<ReadProfessorDto>> GetAll(int offSet, int limit)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"SELECT id, nome, cpf, telefone, email
                     FROM tb_professor
+                    ORDER BY id
                     OFFSET @OffSet
                     LIMIT @Limit";
 
-        return await sqlConnection
+        return await _connection
             .QueryAsync<ReadProfessorDto>(sql, new { OffSet = offSet, Limit = limit });
     }
 
     public async Task<ReadProfessorDto?> GetById(int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"SELECT id, nome, cpf, telefone, email 
                     FROM tb_professor 
                     WHERE id = @Id";
 
-        return await sqlConnection
+        return await _connection
             .QuerySingleOrDefaultAsync<ReadProfessorDto>(sql, new { Id = id });
     }
 
     public async Task<int> DeleteById(int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"DELETE FROM tb_professor
                     WHERE id = @Id";
 
-        return await sqlConnection.ExecuteAsync(sql, new { Id = id });
+        return await _connection.ExecuteAsync(sql, new { Id = id });
     }
 
     public async Task<ReadProfessorDto?> UpdateById(int id, UpdateProfessorDto dto)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
         var sql = @"UPDATE tb_professor
                     SET nome = @Nome,
@@ -99,15 +98,14 @@ public class ProfessorService
             Id = id
         };
 
-        return await sqlConnection.QuerySingleOrDefaultAsync<ReadProfessorDto>(sql, parametros);
+        return await _connection.QuerySingleOrDefaultAsync<ReadProfessorDto>(sql, parametros);
     }
 
-    public async Task<ReadMateriasMinistradasDto> GetMateriasMinistradasById (int id)
+    public async Task<ReadMateriasMinistradasDto?> GetMateriasMinistradasById (int id)
     {
-        await using var sqlConnection = new NpgsqlConnection(_connectionString);
-        await sqlConnection.OpenAsync();
+        await OpenConnectionAsync();
 
-        var professor = await sqlConnection
+        var professor = await _connection
             .QuerySingleOrDefaultAsync<ReadProfessorDto>
             (@"SELECT id, nome, cpf, telefone, email
                FROM tb_professor WHERE id = @Id",
@@ -122,7 +120,7 @@ public class ProfessorService
                     JOIN tb_materia m ON mm.id_materia = m.id
                     WHERE mm.id_professor = @Id";
 
-        var materias = await sqlConnection
+        var materias = await _connection
             .QueryAsync<ReadTurmaDto, ReadMateriaDto, ReadTurmaMateriaDto>
             (
                 sql,
