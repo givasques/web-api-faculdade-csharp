@@ -105,33 +105,73 @@ code {
 .card-person {
     display: flex;
     align-items: center;
-    padding: 2vh 10vh;
-}
-
-.card-person__image {
-    width: 100px;
-    padding: 10px;
-}
-
-.card-person__btn {
-    background-color: rgb(114, 53, 172);
-    padding: 15px 25px;
-    border-radius: 20px;
-    text-decoration: none;
-    color: white;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
 }
 
 .card-person__info {
     display: flex;
-    gap: 15%;
-    width: 100%;
     align-items: center;
+    gap: 16px;
+}
+
+.card-person__image {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f0f0f0;
 }
 
 .card-person__info__data {
     display: flex;
     flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.card-person__info__data p {
+    margin: 0;
+}
+
+.card-person__info__data p:first-child {
+    font-weight: 600;
+    color: #555;
+}
+
+.card-person__info__data p:nth-child(2) {
+    font-size: 16px;
+    font-weight: 600;
+    color: #222;
+}
+
+.card-person__btn {
+    background-color: rgb(114, 53, 172);
+    padding: 10px 18px;
+    border-radius: 20px;
+    border: none;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.card-person__btn:hover {
+    background-color: rgb(94, 43, 145);
+}
+
+.muted {
+    color: #777;
     font-size: 13px;
+}
+
+.name {
+    font-size: 16px;
+    font-weight: 600;
 }
 
 p {
