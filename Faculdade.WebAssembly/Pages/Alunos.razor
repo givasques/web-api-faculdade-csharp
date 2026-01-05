@@ -1,0 +1,39 @@
+﻿@page "/alunos"
+@inject AlunosAPI alunosAPI
+@inject ILogger<Alunos> logger
+@using Faculdade.Shared.Data.Dtos.AlunoDtos
+@using Faculdade.WebAssembly.Components
+
+<h3>Alunos</h3>
+
+@if (alunos is not null) 
+{
+	@foreach (var aluno in alunos)
+	{
+		<CardAluno Aluno="aluno"/>
+	}
+}
+else
+{
+	<p>Erro ao buscar alunos</p>
+}
+
+
+@code {
+
+	private ICollection<ReadAlunoDto>? alunos;
+
+	protected async override Task OnInitializedAsync()
+	{
+		try
+		{
+			logger.LogInformation("Buscando alunos...");
+			alunos = await alunosAPI.GetAlunos(0, 100);
+			logger.LogInformation($"Um total de {alunos.Count} foi recuperado");
+		}
+		catch (Exception e)
+		{
+			logger.LogInformation($"Erro ao buscar alunos: {e}");
+		}
+	}		
+}

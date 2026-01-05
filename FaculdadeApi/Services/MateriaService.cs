@@ -1,5 +1,5 @@
 ﻿using Dapper;
-using FaculdadeApi.Dtos.MateriaDtos;
+using Faculdade.Shared.Data.Dtos.MateriaDtos;
 using System.Data.Common;
 using System.Data;
 

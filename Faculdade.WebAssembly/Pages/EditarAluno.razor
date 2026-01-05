@@ -1,0 +1,96 @@
+﻿@page "/alunos/editar/{rm:int}"
+@inject AlunosAPI alunosAPI
+@inject ILogger<Alunos> logger
+@using Faculdade.Shared.Data.Dtos.AlunoDtos
+@using Faculdade.WebAssembly.Components
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<h3 class="form-title">Editar Aluno</h3>
+
+@if (aluno is null)
+{
+	<p>Carregando dados do aluno...</p>
+}
+else
+{
+    <div class="form-container">
+        <EditForm Model="aluno" OnValidSubmit="Salvar">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-group">
+                <label>E-mail</label>
+                <InputText class="form-input" @bind-Value="aluno.Email" />
+            </div>
+
+            <div class="form-group">
+                <label>CPF</label>
+                <InputText class="form-input" @bind-Value="aluno.Cpf" />
+            </div>
+
+            <div class="form-group">
+                <label>Nome</label>
+                <InputText class="form-input" @bind-Value="aluno.Nome" />
+            </div>
+
+            <div class="form-group">
+                <label>Data de Nascimento</label>
+                <InputDate class="form-input" @bind-Value="aluno.DataNascimento" />
+            </div>
+
+            <div class="form-group">
+                <label>Turma</label>
+                <InputText class="form-input" @bind-Value="aluno.IdTurma" />
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-salvar">
+                    Salvar
+                </button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int rm { get; set; }
+
+    private UpdateAlunoDto? aluno;
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            logger.LogInformation($"Buscando aluno RM {rm}");
+            aluno = await alunosAPI.GetAlunoByRmToUpdate(rm);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Erro ao buscar aluno");
+        }
+    }
+
+    private async Task Salvar()
+    {
+        try
+        {
+            logger.LogInformation($"Atualizando aluno RM {rm}.");
+            await alunosAPI.UpdateAluno(rm, aluno);
+            await JS.InvokeVoidAsync(
+                "alert",
+                "Aluno atualizado com sucesso!"
+            );
+            Navigation.NavigateTo($"/alunos");
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Erro ao atualizar aluno.");
+            await JS.InvokeVoidAsync(
+                "alert",
+                "Erro ao salvar aluno"
+            );
+        } 
+    }
+}

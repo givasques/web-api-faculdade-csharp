@@ -1,7 +1,7 @@
 ﻿using Dapper;
-using FaculdadeApi.Dtos.AvaliacaoDtos;
-using FaculdadeApi.Dtos.MateriaDtos;
-using FaculdadeApi.Dtos.TurmaDtos;
+using Faculdade.Shared.Data.Dtos.AvaliacaoDtos;
+using Faculdade.Shared.Data.Dtos.MateriaDtos;
+using Faculdade.Shared.Data.Dtos.TurmaDtos;
 using System.Data;
 using System.Data.Common;
 

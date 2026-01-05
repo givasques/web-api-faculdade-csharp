@@ -1,4 +1,4 @@
-﻿using FaculdadeApi.Dtos.TurmaDtos;
+﻿using Faculdade.Shared.Data.Dtos.TurmaDtos;
 using FaculdadeApi.Services;
 using Microsoft.AspNetCore.Mvc;
 

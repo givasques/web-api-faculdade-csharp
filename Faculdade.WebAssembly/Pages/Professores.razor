@@ -1,0 +1,39 @@
+﻿@page "/professores"
+@inject ProfessoresAPI professoresAPI
+@inject ILogger<Professores> logger
+@using Faculdade.Shared.Data.Dtos.ProfessorDtos
+@using Faculdade.WebAssembly.Components
+
+<h3>Professores</h3>
+
+@if (professores is not null) 
+{
+	@foreach (var professor in professores)
+	{
+		<CardProfessor Professor="professor"/>
+	}
+}
+else
+{
+	<p>Erro ao buscar professores</p>
+}
+
+
+@code {
+
+	private ICollection<ReadProfessorDto>? professores;
+
+	protected async override Task OnInitializedAsync()
+	{
+		try
+		{
+			logger.LogInformation("Buscando professores...");
+			professores = await professoresAPI.GetProfessores(0, 100);
+			logger.LogInformation($"Um total de {professores.Count} foi recuperado");
+		}
+		catch (Exception e)
+		{
+			logger.LogInformation($"Erro ao buscar professores: {e}");
+		}
+	}		
+}

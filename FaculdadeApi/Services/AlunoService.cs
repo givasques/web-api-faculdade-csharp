@@ -1,6 +1,6 @@
 ﻿using Dapper;
-using FaculdadeApi.Dtos.AlunoDtos;
-using FaculdadeApi.Dtos.AvaliacaoDtos;
+using Faculdade.Shared.Data.Dtos.AlunoDtos;
+using Faculdade.Shared.Data.Dtos.AvaliacaoDtos;
 using System.Data;
 using System.Data.Common;
 

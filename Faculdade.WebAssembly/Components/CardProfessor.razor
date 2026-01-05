@@ -1,0 +1,26 @@
+﻿@using Faculdade.Shared.Data.Dtos.ProfessorDtos
+@inject NavigationManager Navigation
+
+<div class="card-person">
+    <div class="card-person__info">
+        <img class="card-person__image" src="images/perfil.png" alt="Imagem de perfil">
+        <div class="card-person__info__data">
+            <p>ID @Professor.Id</p>
+            <p>@Professor.Nome</p>
+            <p>CPF: @Professor.Cpf</p>
+            <p>Telefone: @Professor.Telefone</p>
+            <p>Email: @Professor.Email</p>
+        </div>
+    </div>
+    <button class="card-person__btn" @onclick="EditarProfessor">Editar</button>
+</div>
+
+@code {
+    [Parameter]
+    public ReadProfessorDto Professor { get; set; } = default!;
+
+    private void EditarProfessor()
+    {
+        Navigation.NavigateTo($"/professores/editar/{Professor.Id}");
+    }
+}
